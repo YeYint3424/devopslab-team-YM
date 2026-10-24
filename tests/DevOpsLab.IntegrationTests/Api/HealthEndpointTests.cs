@@ -5,11 +5,16 @@ using Xunit;
 
 namespace DevOpsLab.IntegrationTests.Api;
 
-public class HealthEndpointTests : IClassFixture<ApiFactory>
+[Collection(ApiCollection.Name)]
+public class HealthEndpointTests : IAsyncLifetime
 {
     private readonly ApiFactory _factory;
 
     public HealthEndpointTests(ApiFactory factory) => _factory = factory;
+
+    // xUnit runs these before and after every test in this class.
+    public Task InitializeAsync() => _factory.ResetAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Liveness_ReturnsHealthy_AndOnlyContainsTheSelfCheck()

@@ -7,11 +7,16 @@ using Xunit;
 
 namespace DevOpsLab.IntegrationTests.Api;
 
-public class ProductEndpointTests : IClassFixture<ApiFactory>
+[Collection(ApiCollection.Name)]
+public class ProductEndpointTests : IAsyncLifetime
 {
     private readonly ApiFactory _factory;
 
     public ProductEndpointTests(ApiFactory factory) => _factory = factory;
+
+    // xUnit runs these before and after every test in this class.
+    public Task InitializeAsync() => _factory.ResetAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task ListProducts_ReturnsSeededCatalog()
