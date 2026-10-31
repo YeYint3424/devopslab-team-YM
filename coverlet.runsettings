@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Coverage scope for MH24. Agreed in Session 3, enforced as a gate from Session 4.
+
+  Measuring the whole solution produces a meaningless number: EF migrations are
+  generated, Program.cs is wiring, and DTOs have no behaviour. Including them
+  either inflates the figure or makes any target unreachable.
+
+  What counts: DevOpsLab.Domain and DevOpsLab.Application, where the behaviour is.
+
+  Usage:
+    dotnet test  [dash dash]settings coverlet.runsettings  [dash dash]collect:"XPlat Code Coverage"
+  (see coverage.sh, which runs it for you)
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+
+          <!-- Only these assemblies count towards the number. -->
+          <Include>[DevOpsLab.Domain]*,[DevOpsLab.Application]*</Include>
+
+          <!-- Belt and braces: exclude everything else explicitly. -->
+          <Exclude>[DevOpsLab.WebApi]*,[DevOpsLab.Infrastructure]*,[*Tests]*</Exclude>
+
+          <!-- Generated or trivial code, by file. -->
+          <ExcludeByFile>**/Migrations/*.cs,**/Program.cs,**/*.g.cs,**/*.Designer.cs</ExcludeByFile>
+
+          <!-- Explicit, reviewable opt-out plus compiler-generated members. -->
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+
+          <!-- Auto-properties have no behaviour to test. -->
+          <SkipAutoProps>true</SkipAutoProps>
+
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>true</UseSourceLink>
+          <DeterministicReport>false</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
