@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+# Alternative runtime: Alpine. Built only to compare; Compose never uses it.
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY DevOpsLab.sln ./
+COPY src/DevOpsLab.Domain/DevOpsLab.Domain.csproj                 src/DevOpsLab.Domain/
+COPY src/DevOpsLab.Application/DevOpsLab.Application.csproj       src/DevOpsLab.Application/
+COPY src/DevOpsLab.Infrastructure/DevOpsLab.Infrastructure.csproj src/DevOpsLab.Infrastructure/
+COPY src/DevOpsLab.WebApi/DevOpsLab.WebApi.csproj                 src/DevOpsLab.WebApi/
+RUN dotnet restore src/DevOpsLab.WebApi/DevOpsLab.WebApi.csproj
+COPY src/ src/
+RUN dotnet publish src/DevOpsLab.WebApi/DevOpsLab.WebApi.csproj \
+        --configuration Release --no-restore --output /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+WORKDIR /app
+
+# Alpine ships without full ICU. Install it, or run invariant globalization.
+RUN apk add --no-cache icu-libs curl
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+COPY --from=build /app/publish .
+
+# The plain (non-chiseled) .NET images DEFINE the user `app` but do not SELECT it.
+USER app
+
+# Possible only because this image has a shell and curl.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
+    CMD curl -fsS http://localhost:8080/healthz/ready || exit 1
+
+ENTRYPOINT ["dotnet", "DevOpsLab.WebApi.dll"]

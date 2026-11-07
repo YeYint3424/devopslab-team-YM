@@ -1,23 +1,22 @@
-# Session 1 development dependency: a local SQL Server for the API to talk to.
-#
-# This file intentionally contains ONLY the database. Packaging the API itself
-# into a container is your work in Session 6 - see docker-compose.todo.yml.
+# The API and its database, brought up by one command:
+#   docker compose up -d --build
+name: devopslab
+
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: devopslab-sqlserver
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Your_strong_Passw0rd}"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}"
       MSSQL_PID: "Developer"
-    ports:
-      - "${MSSQL_PORT:-1433}:1433"
+    # No `ports:` any more. The API reaches SQL Server by service name.
+    networks:
+      - backend
     volumes:
       - mssql-data:/var/opt/mssql
     healthcheck:
-      # The container is only "healthy" once SQL Server actually answers a query.
-      # A running process is not the same thing as a usable dependency - the same
-      # distinction you will apply to /healthz/live and /healthz/ready.
+      # Healthy only once SQL Server answers a query: "running" is not "usable".
       test:
         [
           "CMD-SHELL",
@@ -27,6 +26,34 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: devopslab-api:local
+    container_name: devopslab-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # Configuration comes from the environment, never from the image.
+      ConnectionStrings__Default: >-
+        Server=sqlserver,1433;Database=DevOpsLab;User Id=sa;
+        Password=${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env};
+        TrustServerCertificate=True;Encrypt=True;Connect Timeout=3
+    ports:
+      - "${API_PORT:-8080}:8080"
+    networks:
+      - backend
+    restart: unless-stopped
+    # NO healthcheck block, on purpose: the chiseled image has no shell and no curl.
+
+networks:
+  backend:
+    driver: bridge
 
 volumes:
   mssql-data:
