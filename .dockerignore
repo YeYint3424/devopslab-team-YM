@@ -1,0 +1,30 @@
+# Build output and IDE state
+**/bin/
+**/obj/
+**/out/
+**/TestResults/
+**/coverage*/
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+**/*.user
+**/*.suo
+
+# Secrets and local configuration
+**/.env
+**/.env.*
+**/appsettings.*.Local.json
+**/*.pfx
+**/*.p12
+**/*.key
+**/secrets.json
+
+# Not needed to run the service
+docs/
+**/*.md
+!README.md
+docker-compose*.yml
+nginx/
+scripts/
